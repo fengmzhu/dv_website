@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Service 1: The Database (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: lamp_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: lamp_root_password
+      MYSQL_DATABASE: lamp_db
+      MYSQL_USER: lamp_user
+      MYSQL_PASSWORD: lamp_password
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  # Service 2: The Web Server (Apache + PHP)
+  web:
+    build:
+      context: ./docker/web
+    container_name: lamp_web
+    restart: unless-stopped
+    ports:
+      - "8080:80" # Map host port 8080 to container port 80
+    volumes:
+      - ./src:/var/www/html # Mount project code into the container
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # Service 3: Database Admin Tool (PhpMyAdmin)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: lamp_pma
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: lamp_root_password
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local 

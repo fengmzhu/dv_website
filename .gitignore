@@ -1,0 +1,6 @@
+# Docker
+docker/data/
+
+# Vendor directories
+vendor/
+node_modules/ 

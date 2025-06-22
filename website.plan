@@ -1,0 +1,383 @@
+### **Project Plan: Dockerized Project & Workload Tracker**
+
+**Objective:** Create a two-page web application. The first page is a form to submit project data. The second is a dashboard to visualize this data using charts. The entire environment will be containerized with Docker for consistency and ease of deployment.
+
+---
+
+### **Phase 1: Environment & Project Foundation**
+
+This phase sets up the project structure, version control, and the Docker-based local development environment.
+
+1.  **Create Project Directory & Initialize Git:**
+    *   Create the root project directory and navigate into it.
+    *   Initialize a Git repository to track all changes.
+
+2.  **Define Project Structure:**
+    *   Create the following directory and file structure. This separates the application code from the Docker configuration.
+    ```
+    project-tracker/
+    ├── .gitignore
+    ├── docker-compose.yml
+    ├── docker/
+    │   └── web/
+    │       └── Dockerfile
+    └── src/
+        ├── api/
+        ├── css/
+        └── js/
+    ```
+
+3.  **Create `.gitignore`:**
+    *   Create a `.gitignore` file in the root to prevent sensitive data and unnecessary files from being committed to Git.
+    ```
+    # Docker
+    docker/data/
+
+    # Vendor directories
+    vendor/
+    node_modules/
+    ```
+
+4.  **Create `docker-compose.yml`:**
+    *   This is the master file for the local development environment. It will define three services: our web server, our database, and a database management tool. Create `docker-compose.yml` in the root.
+    ```yaml
+    version: '3.8'
+
+    services:
+      # Service 1: The Database (MySQL)
+      db:
+        image: mysql:8.0
+        container_name: tracker_db
+        restart: unless-stopped
+        environment:
+          MYSQL_ROOT_PASSWORD: your_root_password
+          MYSQL_DATABASE: tracker_db
+          MYSQL_USER: tracker_user
+          MYSQL_PASSWORD: your_strong_password
+        volumes:
+          - db_data:/var/lib/mysql
+        networks:
+          - app-network
+
+      # Service 2: The Web Server (Apache + PHP)
+      web:
+        build:
+          context: ./docker/web
+        container_name: tracker_web
+        restart: unless-stopped
+        ports:
+          - "8080:80" # Map host port 8080 to container port 80
+        volumes:
+          - ./src:/var/www/html # Mount project code into the container
+        depends_on:
+          - db
+        networks:
+          - app-network
+
+      # Service 3: Database Admin Tool (PhpMyAdmin)
+      phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: tracker_pma
+        restart: unless-stopped
+        ports:
+          - "8081:80"
+        environment:
+          PMA_HOST: db
+          MYSQL_ROOT_PASSWORD: your_root_password
+        depends_on:
+          - db
+        networks:
+          - app-network
+
+    networks:
+      app-network:
+        driver: bridge
+
+    volumes:
+      db_data:
+        driver: local
+    ```
+
+5.  **Create the Web Server `Dockerfile`:**
+    *   This file defines how to build our custom Apache/PHP image. It will install the necessary PHP extensions to communicate with MySQL. Create `docker/web/Dockerfile`.
+    ```dockerfile
+    # Start from the official PHP 8.2 with Apache image
+    FROM php:8.2-apache
+
+    # Install necessary PHP extensions for MySQL
+    # pdo_mysql is the modern driver for database connections
+    RUN docker-php-ext-install pdo_mysql
+    ```
+
+6.  **Launch the Environment:**
+    *   Run `docker-compose up -d --build` from the root directory. This will build the `web` image, pull the `mysql` and `phpmyadmin` images, and start all containers.
+    *   **Verification:**
+        *   Check `http://localhost:8080`. You should see the default Apache/PHP page.
+        *   Check `http://localhost:8081`. You should be able to log in to PhpMyAdmin with user `root` and password `your_root_password`.
+
+---
+
+### **Phase 2: Backend Development (PHP & MySQL)**
+
+This phase creates the database structure and the API endpoints to save and retrieve data.
+
+1.  **Define Database Schema:**
+    *   In PhpMyAdmin (`http://localhost:8081`), select the `tracker_db` database and run the following SQL query to create the main table.
+    ```sql
+    CREATE TABLE entries (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        project_name VARCHAR(255) NOT NULL,
+        ip_type VARCHAR(100) NOT NULL,
+        workload INT NOT NULL,
+        deadline DATE NOT NULL,
+        submission_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    ```
+
+2.  **Create Database Connection Script:**
+    *   Create `src/api/db_connect.php`. This file will handle the connection logic using the secure PDO extension.
+    ```php
+    <?php
+    $host = 'db'; // This is the service name from docker-compose.yml
+    $dbname = 'tracker_db';
+    $user = 'tracker_user';
+    $pass = 'your_strong_password';
+    $charset = 'utf8mb4';
+
+    $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+
+    try {
+        $pdo = new PDO($dsn, $user, $pass, $options);
+    } catch (\PDOException $e) {
+        throw new \PDOException($e->getMessage(), (int)$e->getCode());
+    }
+    ?>
+    ```
+
+3.  **Create Form Submission Endpoint:**
+    *   Create `src/api/submit_entry.php`. This script will receive data from the form and insert it into the database using a prepared statement to prevent SQL injection.
+    ```php
+    <?php
+    header('Content-Type: application/json');
+    
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+        exit;
+    }
+
+    require 'db_connect.php';
+
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    $sql = "INSERT INTO entries (name, project_name, ip_type, workload, deadline) VALUES (?, ?, ?, ?, ?)";
+    $stmt= $pdo->prepare($sql);
+    
+    try {
+        $stmt->execute([
+            $data['name'],
+            $data['project'],
+            $data['ipType'],
+            $data['workload'],
+            $data['deadline']
+        ]);
+        echo json_encode(['status' => 'success', 'message' => 'Entry added successfully!']);
+    } catch (\PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+    ?>
+    ```
+
+4.  **Create Data Retrieval Endpoint:**
+    *   Create `src/api/get_data.php`. This will be used by the dashboard to fetch all entries.
+    ```php
+    <?php
+    header('Content-Type: application/json');
+    require 'db_connect.php';
+
+    $stmt = $pdo->query("SELECT name, project_name, ip_type, workload, DATE_FORMAT(deadline, '%Y-%m-%d') as deadline FROM entries ORDER BY submission_date DESC");
+    $entries = $stmt->fetchAll();
+
+    echo json_encode($entries);
+    ?>
+    ```
+
+---
+
+### **Phase 3: Frontend Development (HTML, CSS & JS)**
+
+This phase creates the user-facing pages.
+
+1.  **Create the Input Form Page:**
+    *   Create `src/index.html`. This will be the main entry point with the form. We'll use Bootstrap 5 via CDN for styling.
+    ```html
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Project Entry</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <h1>Add New Project Entry</h1>
+            <div id="response-message" class="mt-3"></div>
+            <form id="entry-form" class="mt-4">
+                <div class="mb-3"><input type="text" class="form-control" name="name" placeholder="Your Name" required></div>
+                <div class="mb-3"><input type="text" class="form-control" name="project" placeholder="Project Name" required></div>
+                <div class="mb-3"><input type="text" class="form-control" name="ipType" placeholder="IP Type (e.g., Feature, Bugfix)" required></div>
+                <div class="mb-3"><input type="number" class="form-control" name="workload" placeholder="Workload (hours)" required></div>
+                <div class="mb-3"><input type="date" class="form-control" name="deadline" required></div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+                <a href="/dashboard.html" class="btn btn-secondary">Go to Dashboard</a>
+            </form>
+        </div>
+        <script src="/js/main.js"></script>
+    </body>
+    </html>
+    ```
+
+2.  **Create the Dashboard Page:**
+    *   Create `src/dashboard.html`. This page will contain canvas elements for our charts. We'll use Chart.js via CDN.
+    ```html
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Dashboard</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <h1>Workload Dashboard</h1>
+            <div class="row mt-4">
+                <div class="col-md-6"><canvas id="workloadByPersonChart"></canvas></div>
+                <div class="col-md-6"><canvas id="workloadByProjectChart"></canvas></div>
+            </div>
+            <a href="/" class="btn btn-primary mt-4">Back to Entry Form</a>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="/js/dashboard.js"></script>
+    </body>
+    </html>
+    ```
+
+3.  **Create JavaScript for Form Submission:**
+    *   Create `src/js/main.js`. This will handle the AJAX submission.
+    ```javascript
+    document.getElementById('entry-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+    
+        const response = await fetch('/api/submit_entry.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+    
+        const result = await response.json();
+        const messageDiv = document.getElementById('response-message');
+        if (response.ok) {
+            messageDiv.className = 'alert alert-success';
+            form.reset();
+        } else {
+            messageDiv.className = 'alert alert-danger';
+        }
+        messageDiv.textContent = result.message;
+    });
+    ```
+
+4.  **Create JavaScript for Dashboard:**
+    *   Create `src/js/dashboard.js`. This will fetch data and render the charts.
+    ```javascript
+    async function fetchDataAndRenderCharts() {
+        const response = await fetch('/api/get_data.php');
+        const entries = await response.json();
+
+        // 1. Process data for Workload by Person
+        const workloadByPerson = entries.reduce((acc, entry) => {
+            acc[entry.name] = (acc[entry.name] || 0) + entry.workload;
+            return acc;
+        }, {});
+
+        // 2. Process data for Workload by Project
+        const workloadByProject = entries.reduce((acc, entry) => {
+            acc[entry.project_name] = (acc[entry.project_name] || 0) + entry.workload;
+            return acc;
+        }, {});
+
+        // Render charts
+        renderBarChart('workloadByPersonChart', 'Workload by Person (hours)', workloadByPerson);
+        renderPieChart('workloadByProjectChart', 'Workload by Project (hours)', workloadByProject);
+    }
+
+    function renderBarChart(canvasId, label, data) {
+        new Chart(document.getElementById(canvasId), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(data),
+                datasets: [{ label, data: Object.values(data) }]
+            }
+        });
+    }
+
+    function renderPieChart(canvasId, label, data) {
+        new Chart(document.getElementById(canvasId), {
+            type: 'pie',
+            data: {
+                labels: Object.keys(data),
+                datasets: [{ label, data: Object.values(data) }]
+            }
+        });
+    }
+
+    fetchDataAndRenderCharts();
+    ```
+
+---
+
+### **Phase 4: CI/CD Blueprint (Optional Future Step)**
+
+This is a plan for automating the deployment process.
+
+1.  **Goal:** When code is pushed to the `main` branch on GitHub, automatically build the Docker image and push it to a container registry (like Docker Hub or AWS ECR).
+2.  **Create Workflow File:** Create `.github/workflows/main.yml`.
+3.  **Define the Workflow:**
+    ```yaml
+    name: Build and Push Docker Image
+
+    on:
+      push:
+        branches: [ "main" ]
+
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v3
+
+        - name: Log in to Docker Hub
+          uses: docker/login-action@v2
+          with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+        - name: Build and push Docker image
+          uses: docker/build-push-action@v4
+          with:
+            context: .
+            file: ./docker/web/Dockerfile # Specify the correct path
+            push: true
+            tags: yourdockerhubusername/project-tracker:latest
+    ```
+4.  **Setup:** The production server would then only need to `docker pull` the new image and restart the `web` service to deploy the update. 
