@@ -5,6 +5,9 @@ docker/data/
 vendor/
 node_modules/
 
+#reference file for curser to read  
+reference/
+
 # Ignore environment files containing secrets
 .env.*
 
