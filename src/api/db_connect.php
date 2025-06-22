@@ -1,4 +1,5 @@
 <?php
+// FOR DEBUGGING ONLY - Using hardcoded credentials
 $host = 'db'; // This is the service name from docker-compose.yml
 $dbname = getenv('MYSQL_DATABASE');
 $user = getenv('MYSQL_USER');
@@ -12,9 +13,6 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (\PDOException $e) {
-    throw new \PDOException($e->getMessage(), (int)$e->getCode());
-}
+// Allow exceptions to be caught by the calling script
+$pdo = new PDO($dsn, $user, $pass, $options);
 ?> 

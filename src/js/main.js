@@ -4,7 +4,7 @@ document.getElementById('entry-form').addEventListener('submit', async function 
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
-    const response = await fetch('/api/submit_entry.php', {
+    const response = await fetch('api/submit_entry.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

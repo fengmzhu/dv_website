@@ -25,6 +25,8 @@ services:
     restart: unless-stopped
     ports:
       - "8080:80" # Map host port 8080 to container port 80
+    env_file:
+      - .env.local # Make environment variables available to the container
     volumes:
       - ./src:/var/www/html # Mount project code into the container
     depends_on:

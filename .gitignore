@@ -3,4 +3,10 @@ docker/data/
 
 # Vendor directories
 vendor/
-node_modules/ 
+node_modules/
+
+# Ignore environment files containing secrets
+.env.*
+
+# Ignore log files
+logs/ 

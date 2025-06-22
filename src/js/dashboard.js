@@ -1,16 +1,16 @@
 async function fetchDataAndRenderCharts() {
-    const response = await fetch('/api/get_data.php');
+    const response = await fetch('api/get_data.php');
     const entries = await response.json();
 
     // 1. Process data for Workload by Person
     const workloadByPerson = entries.reduce((acc, entry) => {
-        acc[entry.name] = (acc[entry.name] || 0) + entry.workload;
+        acc[entry.name] = (acc[entry.name] || 0) + parseInt(entry.workload, 10);
         return acc;
     }, {});
 
     // 2. Process data for Workload by Project
     const workloadByProject = entries.reduce((acc, entry) => {
-        acc[entry.project_name] = (acc[entry.project_name] || 0) + entry.workload;
+        acc[entry.project_name] = (acc[entry.project_name] || 0) + parseInt(entry.workload, 10);
         return acc;
     }, {});
 
