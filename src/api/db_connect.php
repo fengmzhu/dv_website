@@ -1,8 +1,8 @@
 <?php
 $host = 'db'; // This is the service name from docker-compose.yml
-$dbname = 'lamp_db';
-$user = 'lamp_user';
-$pass = 'lamp_password';
+$dbname = getenv('MYSQL_DATABASE');
+$user = getenv('MYSQL_USER');
+$pass = getenv('MYSQL_PASSWORD');
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";

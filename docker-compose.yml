@@ -7,10 +7,10 @@ services:
     container_name: lamp_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: lamp_root_password
-      MYSQL_DATABASE: lamp_db
-      MYSQL_USER: lamp_user
-      MYSQL_PASSWORD: lamp_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
       - ./docker/db/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -41,7 +41,7 @@ services:
       - "8081:80"
     environment:
       PMA_HOST: db
-      MYSQL_ROOT_PASSWORD: lamp_root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     depends_on:
       - db
     networks:
