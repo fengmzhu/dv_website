@@ -2,19 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <div class="container mt-5">
-        <h1>Workload Dashboard</h1>
-        <div class="row mt-4">
-            <div class="col-md-6"><canvas id="workloadByPersonChart"></canvas></div>
-            <div class="col-md-6"><canvas id="workloadByProjectChart"></canvas></div>
+    <div class="container-fluid mt-4">
+        <h1 class="mb-4">Task Dashboard</h1>
+
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <a href="index.html" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Task Manually</a>
+            </div>
+            <div class="col-md-3">
+                <a href="upload.html" class="btn btn-success"><i class="bi bi-upload"></i> Upload from File</a>
+            </div>
+            <div class="col-md-4 ms-auto">
+                <div class="input-group">
+                    <label class="input-group-text" for="dv-filter">Filter by DV:</label>
+                    <select class="form-select" id="dv-filter">
+                        <option value="">All DVs</option>
+                    </select>
+                </div>
+            </div>
         </div>
-        <a href="index.html" class="btn btn-primary mt-4">Back to Entry Form</a>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <!-- New Fields -->
+                        <th>Index</th>
+                        <th>Alternative Name</th>
+                        <th>DD</th>
+                        <th>PL</th>
+                        <th>BU</th>
+                        <th>Assign Date</th>
+                        <th>Finish Date</th>
+                        <!-- Existing Fields -->
+                        <th>DV</th>
+                        <th>Project</th>
+                        <th>IP</th>
+                        <th>IP Postfix</th>
+                        <th>Priority</th>
+                        <th>TO Date</th>
+                        <th>Status</th>
+                        <th>Load Total (days)</th>
+                        <th>Load Remain (days)</th>
+                        <th>Remark</th>
+                        <th>Source</th>
+                        <th>Date Added</th>
+                    </tr>
+                </thead>
+                <tbody id="task-table-body">
+                    <!-- Rows will be injected by JavaScript -->
+                </tbody>
+            </table>
+        </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script src="js/dashboard.js"></script>
 </body>
 </html> 

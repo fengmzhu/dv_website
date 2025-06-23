@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Tasks</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Upload Tasks from File</h1>
+        <p>Upload an .xlsx or .json file to add multiple tasks at once.</p>
+
+        <div class="card p-4">
+            <form id="upload-form">
+                <div class="mb-3">
+                    <label for="task-file" class="form-label">Task File (JSON only)</label>
+                    <input class="form-control" type="file" id="task-file" name="task_file" accept=".json" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Preview Upload</button>
+            </form>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- This area will be hidden by default and shown after a successful preview -->
+        <div id="preview-area" class="d-none">
+            <h2>Preview Results</h2>
+            <p>Please review the parsed data below. Select the entries you wish to add to the database.</p>
+            
+            <div id="preview-controls" class="mb-3">
+                <button id="add-to-db-btn" class="btn btn-success">Add Selected to Database</button>
+                <div id="upload-status" class="mt-2"></div>
+            </div>
+
+            <div id="preview-table-container" class="table-responsive">
+                <!-- The dynamically generated table will be injected here -->
+            </div>
+        </div>
+
+    </div>
+
+    <script src="js/upload.js"></script>
+</body>
+</html> 

@@ -1,18 +1,23 @@
 <?php
-// FOR DEBUGGING ONLY - Using hardcoded credentials
-$host = 'db'; // This is the service name from docker-compose.yml
+// Report all mysqli errors as exceptions
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+$host = 'db'; // The service name from docker-compose.yml
 $dbname = getenv('MYSQL_DATABASE');
 $user = getenv('MYSQL_USER');
 $pass = getenv('MYSQL_PASSWORD');
-$charset = 'utf8mb4';
 
-$dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-];
+// Create a new mysqli connection object
+$conn = new mysqli($host, $user, $pass, $dbname);
 
-// Allow exceptions to be caught by the calling script
-$pdo = new PDO($dsn, $user, $pass, $options);
+// Check the connection
+if ($conn->connect_error) {
+    // In a real app, you would log this error, not expose it.
+    // The die() call will prevent any further code execution.
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Set the character set to utf8mb4 for full Unicode support
+$conn->set_charset("utf8mb4");
+
 ?> 
